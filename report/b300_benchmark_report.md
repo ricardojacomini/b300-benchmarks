@@ -2,8 +2,19 @@
 
 **Date:** 2026-03-16
 **System:** `b301` — NVIDIA B300 SXM6 AC (Blackwell, SM 10.3)
-**Author:** Juan Perafan and Ricardo S. Jacomini
+**Author:** Juan C. Perafan and Ricardo S. Jacomini
 
+> **Note:** All benchmarks and tests in this report were performed on ARCH — Advanced Research Computing at Johns Hopkins University. The B300 Benchmark Suite is fully reproducible and can be rerun for validation or comparison on similar hardware.
+
+## Insights
+- B300 hardware is superior to H100/B200, but current PyTorch releases lack native sm_103 kernel support, causing 3–4× lower throughput than expected.
+- Using the NGC 25.03 container (PyTorch 2.7, CUDA 12.8) gives major FP16 and FP32 speedups (+65% and +22–34%) over the conda environment, but BF16 remains similar.
+- GEMM and attention operations reach only 65–80% of theoretical peak due to software stack limitations.
+
+> **Note:** When running matrix multiplication (GEMM) and attention workloads on the B300 GPU, the measured performance (in TFLOPS) is only 65–80% of what the hardware is theoretically capable of. This is mainly because the current PyTorch and CUDA software stack does not have optimized kernels for B300’s architecture (sm_103), so it uses less efficient fallback code. As a result, the GPU cannot fully utilize its hardware potential for these operations.
+
+- Full performance will require future PyTorch releases with sm_103 cubins, working torch.compile, and model changes for FP8.
+- Recommendation: Use the NGC container for all B300 training; expect further gains as software matures.
 ---
 
 ## Table of Contents
