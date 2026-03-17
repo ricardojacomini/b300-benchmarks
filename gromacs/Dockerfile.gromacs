@@ -1,12 +1,38 @@
-FROM nvcr.io/nvidia/gromacs:2024.1
+FROM nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    cmake build-essential wget python3 python3-pip \
+    libfftw3-dev libopenmpi-dev openmpi-bin \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build GROMACS 2024.3 with CUDA GPU offload (nb + pme + bonded)
+ARG GMX_VERSION=2024.3
+RUN wget -q https://ftp.gromacs.org/gromacs/gromacs-${GMX_VERSION}.tar.gz \
+    && tar xzf gromacs-${GMX_VERSION}.tar.gz \
+    && mkdir gromacs-${GMX_VERSION}/build \
+    && cd gromacs-${GMX_VERSION}/build \
+    && cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DGMX_GPU=CUDA \
+        -DGMX_CUDA_TARGET_SM="80;86;90;100" \
+        -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
+        -DGMX_MPI=OFF \
+        -DGMX_OPENMP=ON \
+        -DGMX_FFT_LIBRARY=fftw3 \
+        -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs \
+    && make -j$(nproc) \
+    && make install \
+    && cd / && rm -rf gromacs-${GMX_VERSION}*
+
+ENV GMX=/usr/local/gromacs/bin/gmx
+ENV PATH="/usr/local/gromacs/bin:${PATH}"
 
 # Download ApoA1 benchmark input (92,224 atoms — canonical GPU MD benchmark)
-# Source: official GROMACS benchmark set (public domain)
-RUN mkdir -p /benchmarks/apoa1 && \
-    wget -q https://ftp.gromacs.org/benchmarks/apoa1.tar.gz \
-         -O /tmp/apoa1.tar.gz && \
-    tar xzf /tmp/apoa1.tar.gz -C /benchmarks/apoa1 --strip-components=1 && \
-    rm /tmp/apoa1.tar.gz
+RUN mkdir -p /benchmarks/apoa1 \
+    && wget -q https://ftp.gromacs.org/benchmarks/apoa1.tar.gz \
+         -O /tmp/apoa1.tar.gz \
+    && tar xzf /tmp/apoa1.tar.gz -C /benchmarks/apoa1 --strip-components=1 \
+    && rm /tmp/apoa1.tar.gz
 
 WORKDIR /benchmarks
-ENV GMX=/usr/local/gromacs/bin/gmx
