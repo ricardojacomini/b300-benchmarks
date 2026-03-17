@@ -201,6 +201,6 @@ See [`report/b300_benchmark_report.md`](report/b300_benchmark_report.md) §8–1
 
 ## Citation / References
 
-- Pangu-Weather S2S: [Microsoft Research](https://www.microsoft.com/en-us/research/publication/pangu-weather/)
+- Pangu-Weather S2S: [NVIDIA PhysicsNeMo](https://docs.nvidia.com/physicsnemo/25.11/physicsnemo/examples/weather/pangu_weather/README.html)
 - NCCL Tests: https://github.com/NVIDIA/nccl-tests
 - NGC PyTorch 25.03: `nvcr.io/nvidia/pytorch:25.03-py3`
