@@ -1,0 +1,113 @@
+# PyTorch Nightly + CUDA 13.0 — Exact environment lock
+# Captured on 2026-03-17 from node b301 (NVIDIA B300 SXM6 AC)
+# Build: torch==2.12.0.dev20260316+cu130
+#
+# Install:
+#   conda create -n pt-nightly-cu130 python=3.11 -y
+#   conda activate pt-nightly-cu130
+#   pip3 install --pre torch torchvision torchaudio \
+#       --index-url https://download.pytorch.org/whl/nightly/cu130
+#   pip install -r requirements-nightly-cu130.txt
+#
+# Note: torchao==0.16.0 is incompatible with torch 2.12.0.dev; for FP4 support install:
+#   pip install --pre torchao --index-url https://download.pytorch.org/whl/nightly/cu130
+#
+# Key versions:
+#   torch          2.12.0.dev20260316+cu130
+#   torchvision    0.26.0.dev20260316+cu130
+#   torchaudio     2.11.0.dev20260316+cu130
+#   triton         3.6.0+git9844da95
+#   nvidia-nccl    2.29.3 (nvidia-nccl-cu13)
+#   CUDA runtime   13.0.96
+
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+Cartopy==0.25.0
+certifi==2026.2.25
+cftime==1.6.5
+charset-normalizer==3.4.6
+click==8.3.1
+contourpy==1.3.3
+cuda-bindings==13.0.3
+cuda-pathfinder==1.2.2
+cuda-toolkit==13.0.2
+cycler==0.12.1
+einops==0.8.2
+filelock==3.25.2
+fonttools==4.62.1
+fsspec==2026.2.0
+gitdb==4.0.12
+GitPython==3.1.46
+h11==0.16.0
+h5netcdf==1.8.1
+h5py==3.16.0
+hf-xet==1.4.2
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.7.1
+idna==3.11
+Jinja2==3.1.6
+kiwisolver==1.5.0
+markdown-it-py==4.0.0
+MarkupSafe==3.0.2
+matplotlib==3.10.8
+mdurl==0.1.2
+mpmath==1.3.0
+netCDF4==1.7.4
+networkx==3.6.1
+numpy==2.4.3
+nvidia-cublas==13.1.0.3
+nvidia-cuda-cupti==13.0.85
+nvidia-cuda-nvrtc==13.0.88
+nvidia-cuda-runtime==13.0.96
+nvidia-cudnn-cu13==9.19.0.56
+nvidia-cufft==12.0.0.61
+nvidia-cufile==1.15.1.6
+nvidia-curand==10.4.0.35
+nvidia-cusolver==12.0.4.66
+nvidia-cusparse==12.6.3.3
+nvidia-cusparselt-cu13==0.8.0
+nvidia-ml-py==13.590.48
+nvidia-nccl-cu13==2.29.3
+nvidia-nvjitlink==13.0.88
+nvidia-nvshmem-cu13==3.4.5
+nvidia-nvtx==13.0.85
+nvitop==1.6.2
+packaging==24.2
+pandas==3.0.1
+pillow==12.1.1
+platformdirs==4.9.4
+protobuf==6.33.5
+psutil==7.2.2
+pydantic==2.12.5
+pydantic_core==2.41.5
+Pygments==2.19.2
+pyparsing==3.3.2
+pyproj==3.7.2
+pyshp==3.0.3
+python-dateutil==2.9.0.post0
+PyYAML==6.0.3
+requests==2.32.5
+rich==14.3.3
+ruamel.yaml==0.19.1
+safetensors==0.7.0
+sentry-sdk==2.54.0
+shapely==2.1.2
+shellingham==1.5.4
+six==1.17.0
+smmap==5.0.3
+sympy==1.14.0
+timm==1.0.25
+torch==2.12.0.dev20260316+cu130
+torchao==0.16.0
+torchaudio==2.11.0.dev20260316+cu130
+torchvision==0.26.0.dev20260316+cu130
+tqdm==4.67.3
+triton==3.6.0+git9844da95
+typer==0.24.1
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+wandb==0.25.1
+xarray==2026.2.0

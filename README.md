@@ -80,6 +80,12 @@ pip install wandb einops timm ruamel.yaml xarray h5py \
     cartopy cftime pandas psutil tqdm netcdf4 h5netcdf torchao
 ```
 
+> **Exact environment lock** (captured 2026-03-17, `torch==2.12.0.dev20260316+cu130`):
+> ```bash
+> pip install -r requirements-nightly-cu130.txt
+> ```
+> See [`requirements-nightly-cu130.txt`](requirements-nightly-cu130.txt) to reproduce the exact environment used for the §11 benchmark results.
+
 Run the nightly benchmark suite (self-bootstrapping, creates env if missing):
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 bash training/scripts/b300_training_nightly.sh \
