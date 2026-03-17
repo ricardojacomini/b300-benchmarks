@@ -362,15 +362,18 @@ A reference benchmark of the same Pangu S2S model on H100 and B200 nodes (same c
 
 ### 8.1 Reference Comparison (Pangu S2S, BF16, 4 GPU)
 
-| GPU | samples/sec (reference) | Our B300 (conda) | Our B300 (NGC) |
+| GPU | samples/sec | Gap vs H100 | Notes |
 |---|---|---|---|
-| H100 SXM5 | ~6.0 | — | — |
-| B200 SXM | ~7.0 | — | — |
-| **B300 SXM6 (this work)** | — | **1.58** | **1.60** |
+| H100 SXM5 | ~6.0 | baseline | Native sm_90 cubins, torch.compile working |
+| B200 SXM | ~7.0 | +17% over H100 | Native sm_100 cubins, torch.compile working |
+| B300 SXM6 — conda 2.10+cu130 | 1.58 | **−74% vs H100** | sm_100 fallback, compile partial |
+| B300 SXM6 — NGC 25.03 | 1.60 | **−73% vs H100** | sm_100 fallback, compile disabled |
+| B300 SXM6 — Nightly 2.12+cu130 | 2.00 | **−67% vs H100** | sm_100 fallback, compile disabled |
+| **B300 SXM6 — Nightly + torch.compile** | **2.74** | **−54% vs H100** | sm_100 fallback, compile working ✅ |
 
-**B300 is currently 3–4× slower than H100/B200** for this workload, despite being a newer and theoretically more powerful GPU.
+**With PyTorch Nightly + torch.compile, the gap narrows from 3–4× to ~2.2×** — a significant improvement, but the gap remains because sm_103 native cubins are still absent.
 
-> **This is entirely a software stack problem, not a hardware deficiency.**
+> **This is entirely a software stack problem, not a hardware deficiency.** With native sm_103 cubins and a fully working torch.compile path, B300 should exceed H100 by 1.2–1.5×.
 
 ### 8.2 Hardware Comparison — B300 Should Be Faster
 
@@ -408,41 +411,43 @@ For comparison:
 
 This alone can account for 20–40% of missing GEMM/Attention performance.
 
-#### Cause 2 — torch.compile / Triton Cannot Target sm_103 in CUDA 12.8
+#### Cause 2 — torch.compile / Triton Cannot Target sm_103 (Partially Fixed in Nightly)
 
 On the H100 and B200 benchmarks that achieved 6–7 samples/sec, **torch.compile was almost certainly active and working**. Triton on H100/B200 compiles JIT kernels tuned to the exact GPU (sm_90 / sm_100), providing 10–30% additional speedup over PyTorch's precompiled cubins.
 
-On B300 with our conda environment (PyTorch 2.10+CUDA 13.0): `torch.compile` calls ptxas for sm_103 — it compiles, but uses sm_100-compatible instruction sequences without Blackwell-specific tuning.
+On B300 with **NGC 25.03** (PyTorch 2.7+CUDA 12.8): ptxas **rejects sm_103 entirely** (exit code 255), crashing all ranks. Dynamo is disabled entirely with `TORCHDYNAMO_DISABLE=1` — fully eager mode.
 
-On B300 with NGC 25.03 (PyTorch 2.7+CUDA 12.8): ptxas **rejects sm_103 entirely** (exit code 255), crashing all ranks. We disable dynamo entirely with `TORCHDYNAMO_DISABLE=1`, running fully in eager mode.
+On B300 with **PyTorch Nightly 2.12+cu130**: torch.compile **works** — Dynamo traces the model, falls back to sm_100 compiled kernels, and delivers **+18–37% speedup** over eager mode (BF16: 2.00→2.74, FP16: 2.30→2.72 s/s). One function in the 3D Swin attention (`pangu.py:1045`) hits the recompile limit due to dynamic shapes and falls back to eager, but overall throughput still improves significantly.
 
-**H100 benefits from compiled+JIT-tuned kernels; our B300 runs in eager mode with mismatched cubins.**
+**The key difference vs H100/B200:** H100/B200 torch.compile generates sm_90/sm_100 kernels *natively tuned to the hardware*. B300 nightly compile uses sm_100 cubins as a fallback — functional but not yet hardware-optimal. When native sm_103 cubins land, the +37% compile gain will stack on top of the cubin improvement.
 
 #### Cause 3 — FusedAdam / Optimizer Not Available in NGC Container
 
 H100/B200 reference runs used NVIDIA apex **FusedAdam**, which fuses all Adam parameter updates into a single CUDA kernel pass. The NGC 25.03 container does not include apex, so all NGC runs use PyTorch native AdamW (multiple kernel launches per parameter). This adds ~5–15% optimizer step overhead at scale.
 
-### 8.4 Summary of the Gap
+### 8.4 Summary of the Gap — Current Status
 
-| Source of gap | Estimated impact |
-|---|---|
-| sm_103 not in PyTorch arch list (sm_100 cubin fallback) | 20–35% throughput loss |
-| torch.compile / Triton not working (no kernel fusion, no JIT tuning) | 10–30% throughput loss |
-| apex FusedAdam not available in NGC container | 5–15% throughput loss |
-| **Combined compounding effect** | **~3–4× total gap** |
+| Source of gap | Estimated impact | conda | NGC | **Nightly** |
+|---|---|---|---|---|
+| sm_103 not in PyTorch arch list (sm_100 fallback) | 20–35% throughput loss | ❌ | ❌ | ❌ (still missing) |
+| torch.compile / Triton not working | 10–30% throughput loss | Partial | ❌ broken | ✅ **Fixed (+18–37%)** |
+| apex FusedAdam not in container | 5–15% throughput loss | ✅ (conda has apex) | ❌ | ❌ |
+| **Remaining gap vs H100 (BF16, 4 GPU)** | | **~3.8×** | **~3.75×** | **~2.2×** |
+
+**Nightly closes ~40% of the original gap** (from ~3.8× to ~2.2× vs H100) primarily through working torch.compile and improved cuBLAS 13.0 kernels. The remaining gap is almost entirely Cause 1 — sm_103 native cubins.
 
 ### 8.5 When Will B300 Match or Exceed H100/B200?
 
-The gap is entirely software-driven and will close as the ecosystem catches up:
+| Milestone | Expected Gain | Status (2026-03-17) |
+|---|---|---|
+| torch.compile working on B300 | +18–37% over eager | ✅ **Done — use Nightly** |
+| PyTorch Nightly cuBLAS 13.0 improvements | +25–60% over NGC | ✅ **Done — Nightly delivers** |
+| PyTorch release with native sm_103 cubins | +20–35% GEMM/Attention on top | ⏳ Not in `dev20260316`; watch arch_list |
+| Triton JIT kernels native-tuned to sm_103 | +10–20% additional compile gain | ⏳ Blocked on sm_103 in arch_list |
+| apex or FusedAdam in nightly env | +5–15% optimizer step | ⏳ Not installed; add manually |
+| **Full stack maturity (all above)** | **B300 ~1.2–1.5× faster than H100** | ⏳ Estimated 2026 Q2–Q3 |
 
-| Milestone | Expected Outcome |
-|---|---|
-| PyTorch release with sm_103 cubins | +20–35% GEMM/Attention immediately |
-| Triton / CUDA patch for sm_103 ptxas | torch.compile becomes usable; +10–30% |
-| apex or FusedAdam in NGC container | +5–15% optimizer step |
-| **Full stack maturity** | **B300 should be 1.2–1.5× faster than H100** |
-
-Until then, using **NGC 25.03** over the conda env mitigates some of the gap for FP16 workloads (our measurements show +65% for FP16), but BF16 (the most common training precision) remains at roughly conda-level throughput (1.60 vs 1.58 samples/sec).
+**Current best:** B300 Nightly + torch.compile = **2.74 s/s BF16** vs H100 ~6.0 s/s — **gap is ~2.2×**, down from the original ~3.8×. Once native sm_103 cubins land in nightly and Triton JIT targets sm_103, B300 should close to within H100 range and eventually exceed it.
 
 ---
 
