@@ -453,7 +453,7 @@ H100/B200 reference runs used NVIDIA apex **FusedAdam**, which fuses all Adam pa
 
 ## 9. Code Improvements & Tweaks Applied
 
-### 8.1 `gpu_benchmark_dsai.py`
+### 9.1 `gpu_benchmark_dsai.py`
 
 **Environment setup (non-hardcoded, read from env var):**
 ```python
@@ -497,7 +497,7 @@ with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as _s:
     os.environ['MASTER_PORT'] = str(_s.getsockname()[1])
 ```
 
-### 8.2 `exp1_dsai.yaml`
+### 9.2 `exp1_dsai.yaml`
 
 | Setting | Before | After | Reason |
 |---|---|---|---|
@@ -505,12 +505,12 @@ with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as _s:
 | `checkpointing` | `2` | `0` | B300 has 287 GB VRAM; gradient checkpointing is unnecessary |
 | `torch_compile` | `False` | `True` | Enable torch.compile (works in conda env) |
 
-### 8.3 `b300_training_dsai.sh`
+### 9.3 `b300_training_dsai.sh`
 
 - Removed `export NVIDIA_TF32_OVERRIDE=1` — this was silently overriding `--no-tf32` at the driver level, making FP32-pure runs actually execute with TF32, invalidating that test.
 - Added NCCL tuning for Blackwell NVLink 5: `NCCL_BUFFSIZE=16777216`, `NCCL_MAX_NCHANNELS=32`.
 
-### 8.4 `b300_training_ngc.sh` (new)
+### 9.4 `b300_training_ngc.sh` (new)
 
 Self-bootstrapping script — detects host vs container, launches Docker automatically:
 
@@ -534,7 +534,7 @@ Key addition: `TORCHDYNAMO_DISABLE=1` — prevents Triton from calling `ptxas --
 
 ## 10. Limitations & Root Cause Analysis
 
-### 9.1 sm_103 Not in PyTorch's Compiled Arch List
+### 10.1 sm_103 Not in PyTorch's Compiled Arch List
 
 **Problem:** NVIDIA B300 uses CUDA compute capability **SM 10.3 (sm_103)**. As of PyTorch 2.10, the officially compiled cubin list ends at:
 
@@ -548,7 +548,7 @@ sm_50, sm_60, sm_70, sm_80, sm_86, sm_90, sm_100
 
 **Expected fix:** A future PyTorch release (likely 2.11 or 2.12) will add `sm_103` to the compiled arch list, providing native Blackwell cubin optimization.
 
-### 9.2 torch.compile / Triton Failures
+### 10.2 torch.compile / Triton Failures
 
 **Conda PyTorch 2.10 + CUDA 13.0:**
 `torch.compile` calls Triton, which calls `ptxas --gpu-name=sm_103`. CUDA 13.0's `ptxas` supports sm_103 and compiles, but the resulting kernels may not be fully optimized.
@@ -560,7 +560,7 @@ CUDA 12.8's `ptxas` returns **exit code 255** for `--gpu-name=sm_103` — sm_103
 
 **Implication:** All NGC 25.03 results are **eager mode** — no kernel fusion from torch.compile. The FP16 speedup (65% over conda) comes from PyTorch 2.7's improved eager kernels and cuBLAS 12.8, not compilation.
 
-### 9.3 "Using PyTorch native" — What It Means
+### 10.3 "Using PyTorch native" — What It Means
 
 When this log message appears in `faster_train.py`, it means the training script fell back from NVIDIA apex **FusedAdam** to PyTorch's built-in optimizer:
 
@@ -580,7 +580,7 @@ except ImportError:
 
 For Pangu S2S (79M parameters), the optimizer step is not the bottleneck — forward/backward pass dominates — so the impact is smaller than the cuBLAS improvements in CUDA 12.8. However, installing apex in the NGC container Dockerfile would close this gap.
 
-### 9.4 HBM3e Bandwidth Saturation
+### 10.4 HBM3e Bandwidth Saturation
 
 Measured D2D bandwidth via `tensor.copy_()`: **2971 GB/s** vs HBM3e theoretical **~8 TB/s** (~37% utilization).
 
@@ -593,7 +593,7 @@ Achieving 7–8 TB/s requires raw `cudaMemcpy` with explicit multi-controller pa
 
 Training workloads (GEMM-dominant) are compute-bound, not memory-bound, so this does not impact training throughput in practice.
 
-### 9.5 FP8 / Transformer Engine
+### 10.5 FP8 / Transformer Engine
 
 FP8 via NVIDIA Transformer Engine (`--amp-dtype fp8`) showed **no speedup** over BF16 (1.60 vs 1.60 samples/sec in NGC). This is expected:
 
@@ -601,7 +601,7 @@ FP8 only accelerates layers replaced by `transformer_engine.pytorch.Linear`. The
 
 Full FP8 benefit requires replacing `nn.Linear` with `te.Linear` throughout the Pangu architecture — a non-trivial model change.
 
-### 9.6 Docker Group Permission
+### 10.6 Docker Group Permission
 
 Initial Docker runs failed with `permission denied`. Fixed by adding the user to the docker group:
 
