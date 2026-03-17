@@ -32,7 +32,9 @@
 10. [Limitations & Root Cause Analysis](#10-limitations--root-cause-analysis)
 11. [PyTorch Nightly + CUDA 13.0 Benchmark](#11-pytorch-nightly--cuda-130-benchmark)
 12. [MLPerf Inference — ResNet-50 & BERT-Large Offline](#12-mlperf-inference--resnet-50--bert-large-offline)
-13. [Verdict & Recommendations](#13-verdict--recommendations)
+13. [AlphaFold2 Inference Benchmark (JAX)](#13-alphafold2-inference-benchmark-jax)
+14. [GROMACS 2024 MD Simulation — ApoA1](#14-gromacs-2024-md-simulation--apoa1)
+15. [Verdict & Recommendations](#15-verdict--recommendations)
 
 ---
 
@@ -772,7 +774,163 @@ by using `buf.ctypes.data` for the raw C pointer passed to `QuerySampleResponse`
 
 ---
 
-## 13. Verdict & Recommendations
+## 13. AlphaFold2 Inference Benchmark (JAX)
+
+**Workload:** Protein structure prediction — AlphaFold2 (Google DeepMind, Apache 2.0)
+**Framework:** JAX + XLA on NVIDIA NGC JAX container (`nvcr.io/nvidia/jax:25.01-py3`)
+**Scripts:** `alphafold/Dockerfile.alphafold`, `alphafold/run_alphafold_b300.sh`
+
+> **Note on AlphaFold3:** AlphaFold3 (released May 2024) requires a model weights
+> application through DeepMind's non-commercial license before download and is therefore
+> excluded from this automated benchmark suite. This section covers AlphaFold2, whose
+> weights are freely downloadable from the DeepMind GCS bucket (~3.5 GB).
+
+### 13.1 Setup & Design
+
+AlphaFold2 runs on a **single GPU** using JAX + Haiku. The dominant GPU workload is the
+Evoformer attention stack (48 blocks) and structure module. Unlike PyTorch, JAX uses
+**XLA JIT compilation** at first call — there are no precompiled cubins; XLA generates
+PTX for the target GPU at runtime. On B300 (sm_103), XLA falls back to sm_100 PTX
+(the same root cause as §8.3 Cause 1), but the fallback is generated at runtime rather
+than shipped as a static binary.
+
+**Docker setup:**
+```bash
+cd alphafold/
+sg docker -c "docker build -f Dockerfile.alphafold -t b300-alphafold2:latest ."
+```
+
+**Run (single GPU, Evoformer proxy benchmark — no weights required):**
+```bash
+CUDA_GPU=4 bash alphafold/run_alphafold_b300.sh
+```
+
+**Run (full AF2 prediction — requires weights):**
+```bash
+AF_WEIGHTS_DIR=/path/to/alphafold_weights \
+CUDA_GPU=4 bash alphafold/run_alphafold_b300.sh
+```
+
+**Key environment variables:**
+- `XLA_PYTHON_CLIENT_PREALLOCATE=false` — prevents JAX from claiming all 287 GB B300 VRAM on init; AF2 uses 16–32 GB
+- `XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda`
+
+### 13.2 B300 vs H100 vs B200 — AlphaFold2 Inference
+
+Target: T1049 monomer (769 residues, single model, no templates, no relaxation, FP16 MSA)
+
+| GPU | Inference time — T1049 (769 res) | Inference time — 384 res | Notes |
+|---|---|---|---|
+| H100 SXM5 80 GB | ~11.5 min | ~4.5 min | Published; JAX NGC 24.x |
+| B200 SXM 192 GB | ~8.5 min (est.) | ~3.3 min (est.) | Estimated from BF16 TFLOPS ratio (~1.35×); not independently published |
+| **B300 SXM6 287 GB** | **TBD** | **TBD** | Run `run_alphafold_b300.sh` — results pending |
+
+> **B300 VRAM advantage:** B300's 287 GB enables very large multimer predictions
+> (entire virus capsids, large protein complexes) that OOM on H100 (80 GB) and
+> even B200 (192 GB). This is a qualitative capability difference beyond raw speed.
+
+### 13.3 Expected B300 Performance
+
+Based on the pattern seen across all benchmarks in this report:
+- **Evoformer attention** (dominant kernel): same 20–35% below peak as §3.3 until sm_103 XLA kernels land
+- **XLA JIT advantage:** unlike PyTorch static cubins, JAX re-JITs at runtime — once
+  CUDA's ptxas supports sm_103 natively, AlphaFold2 will automatically use native kernels
+  on the next run without any software update required
+- Expected measured time on B300: **~12–14 min (T1049)** with current sm_100 fallback
+
+### 13.4 sm_103 Context for JAX/XLA
+
+| Stack | sm_103 behavior |
+|---|---|
+| PyTorch (stable/NGC) | Static cubins; sm_100 fallback baked in at build time |
+| PyTorch Nightly | Same static cubin fallback; compile path works but uses sm_100 |
+| **JAX/XLA** | **JIT at runtime**; once ptxas supports sm_103, automatically targets it — no rebuild needed |
+
+JAX's runtime JIT means AlphaFold2 on B300 will be **one of the first workloads to benefit**
+when native sm_103 PTX support lands in the CUDA toolkit.
+
+---
+
+## 14. GROMACS 2024 MD Simulation — ApoA1
+
+**Workload:** Molecular dynamics — ApoA1 lipid bilayer (92,224 atoms, NPT ensemble)
+**Software:** GROMACS 2024.1 from NVIDIA NGC (`nvcr.io/nvidia/gromacs:2024.1`)
+**Scripts:** `gromacs/Dockerfile.gromacs`, `gromacs/run_gromacs_b300.sh`
+**Standard benchmark:** ApoA1 is the canonical cross-GPU MD benchmark used by NVIDIA,
+ENCCS, and HPC centers worldwide.
+
+### 14.1 Setup & Design
+
+GROMACS is run in **single-GPU mode** with full GPU offload:
+
+```bash
+gmx mdrun \
+    -ntmpi 1 -ntomp 16 \
+    -nb gpu -pme gpu -bonded gpu \
+    -gpu_id 0 \
+    -nsteps 50000 -resetstep 10000 \
+    -noconfout -dlb no
+```
+
+`-resetstep 10000` discards the first 10,000 steps (equilibration) from timing,
+reporting steady-state **ns/day** — the standard metric for GPU MD comparison.
+
+**Docker setup:**
+```bash
+cd gromacs/
+sg docker -c "docker build -f Dockerfile.gromacs -t b300-gromacs:latest ."
+```
+
+**Run:**
+```bash
+CUDA_GPU=4 bash gromacs/run_gromacs_b300.sh
+```
+
+**sm_103 context:** The NGC GROMACS 2024.1 container is compiled against CUDA 12.x
+with sm_90 and sm_100 targets. On B300 (sm_103), GROMACS falls back to sm_100 kernels —
+same root cause as §8.3 Cause 1. The B300 result (TBD) is expected to be comparable
+to or slightly below H100 until a native sm_103 GROMACS build is available.
+
+### 14.2 B300 vs H100 vs B200 — ApoA1 Performance
+
+| GPU | ApoA1 ns/day (single GPU) | vs H100 | Notes |
+|---|---|---|---|
+| H100 SXM5 80 GB | ~450 ns/day | baseline | GROMACS 2024.1; NVIDIA SC23 benchmarks |
+| B200 SXM 192 GB | ~585 ns/day (est.) | ~+30% | Estimated from MD TFLOPS ratio; not independently published |
+| **B300 SXM6 287 GB** | **TBD** | **TBD** | Run `run_gromacs_b300.sh` — results pending |
+
+> **B300 prediction:** Given the sm_100 cubin fallback (20–35% throughput reduction
+> observed in GEMM benchmarks, §3.1), B300 is expected to measure **400–480 ns/day** —
+> comparable to H100. The 287 GB VRAM advantage is irrelevant for ApoA1 (92K atoms)
+> but becomes decisive for multi-million-atom systems (full virus capsids, lipid bilayer
+> assemblies) that cannot fit on H100 (80 GB) or B200 (192 GB).
+
+### 14.3 Interpreting Results
+
+The primary metric from `gmx mdrun` is:
+```
+Performance:     XXX ns/day     YY hours/ns
+```
+
+| ns/day | Practical meaning |
+|---|---|
+| 450 (H100 baseline) | 1 µs simulation completes in ~2.2 days |
+| 585 (B200 est.) | 1 µs simulation completes in ~1.7 days |
+| TBD (B300) | To be measured |
+
+For large systems where B300's 287 GB VRAM enables runs that H100/B200 cannot fit:
+B300 is qualitatively superior regardless of ns/day throughput.
+
+### 14.4 What to Expect Next
+
+| Milestone | Expected Gain | Status |
+|---|---|---|
+| GROMACS native sm_103 build | +20–35% ns/day on ApoA1 | ⏳ NGC GROMACS image when available |
+| AF2 XLA JIT sm_103 kernels | +15–25% inference time | ⏳ Automatic once ptxas supports sm_103 |
+
+---
+
+## 15. Verdict & Recommendations
 
 ### Overall Performance Summary
 
@@ -805,6 +963,8 @@ by using `buf.ctypes.data` for the raw C pointer passed to `QuerySampleResponse`
 | Full FP8 (`te.Linear` in model) | +30–50% vs BF16 | Requires model architecture surgery |
 | torch.compile on B300 | ✅ Working in nightly (+18–37%) | NGC still broken; use nightly |
 | torchao FP4 on B300 | 14 PFLOPS potential | Install torchao nightly alongside PyTorch nightly |
+| GROMACS native sm_103 build | +20–35% ns/day (ApoA1) | NGC GROMACS image when available; §14 |
+| AF2 XLA JIT sm_103 kernels | +15–25% inference time | Automatic once ptxas supports sm_103; §13 |
 
 ### Quick Start
 

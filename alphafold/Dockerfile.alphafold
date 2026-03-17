@@ -1,0 +1,25 @@
+FROM nvcr.io/nvidia/jax:25.01-py3
+
+# AlphaFold2 Python dependencies
+RUN pip install --no-cache-dir \
+    dm-haiku==0.0.12 \
+    dm-tree \
+    immutabledict \
+    ml_collections \
+    absl-py \
+    biopython
+
+# AlphaFold2 source (Apache 2.0 — open weights, no license gate)
+# NOTE: AlphaFold3 is excluded — model weights require a DeepMind application
+#       (non-commercial only). AF2 weights are freely downloadable from the
+#       DeepMind GCS bucket. No weights are bundled here; mount at runtime via
+#       -v ${AF_WEIGHTS_DIR}:/data/alphafold_weights:ro
+RUN git clone --depth=1 \
+    https://github.com/google-deepmind/alphafold.git /opt/alphafold
+
+WORKDIR /opt/alphafold
+
+# Prevent JAX from pre-allocating all 287 GB of B300 VRAM on init
+ENV XLA_PYTHON_CLIENT_PREALLOCATE=false
+ENV XLA_FLAGS="--xla_gpu_cuda_data_dir=/usr/local/cuda"
+ENV PYTHONPATH="/opt/alphafold:${PYTHONPATH:-}"

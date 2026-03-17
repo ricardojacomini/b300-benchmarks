@@ -1,0 +1,12 @@
+FROM nvcr.io/nvidia/gromacs:2024.1
+
+# Download ApoA1 benchmark input (92,224 atoms — canonical GPU MD benchmark)
+# Source: official GROMACS benchmark set (public domain)
+RUN mkdir -p /benchmarks/apoa1 && \
+    wget -q https://ftp.gromacs.org/benchmarks/apoa1.tar.gz \
+         -O /tmp/apoa1.tar.gz && \
+    tar xzf /tmp/apoa1.tar.gz -C /benchmarks/apoa1 --strip-components=1 && \
+    rm /tmp/apoa1.tar.gz
+
+WORKDIR /benchmarks
+ENV GMX=/usr/local/gromacs/bin/gmx

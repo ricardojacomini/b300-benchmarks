@@ -35,6 +35,14 @@ b300-benchmarks/
 │   ├── run_mlperf_b300_docker.sh     # Runner — NGC Docker container
 │   ├── Dockerfile.mlperf             # NGC 25.03 + mlperf_loadgen from source
 │   └── README.md                     # MLPerf setup & results
+├── alphafold/
+│   ├── Dockerfile.alphafold          # NGC JAX 25.01 + AlphaFold2 deps
+│   └── run_alphafold_b300.sh         # Self-bootstrapping runner (proxy + full prediction)
+├── gromacs/
+│   ├── Dockerfile.gromacs            # NGC GROMACS 2024.1 + ApoA1 benchmark inputs
+│   ├── benchmark_gromacs_b300.sh     # Inner benchmark (runs inside container)
+│   └── run_gromacs_b300.sh           # Self-bootstrapping runner
+├── requirements-nightly-cu130.txt    # Exact pip freeze — torch 2.12.0.dev20260316+cu130
 ├── dataset/
 │   └── README.md                     # Dataset layout + access instructions
 └── report/
@@ -282,6 +290,59 @@ bash run_mlperf_b300_docker.sh
 |---|---|---|---|---|
 | ResNet-50 FP16 | 256 (64/GPU) | **405.6** | VALID | Offline |
 | BERT-Large FP16 (seq=384) | 128 (32/GPU) | **1524.8** | VALID | Offline |
+
+---
+
+## Test 4 — AlphaFold2 Inference (JAX, single GPU)
+
+**Scripts:** `alphafold/` — see [report §13](report/b300_benchmark_report.md#13-alphafold2-inference-benchmark-jax)
+
+No dataset download required — proxy benchmark uses synthetic sequences.
+Full AF2 prediction requires model weights (~3.5 GB, free download from DeepMind).
+
+```bash
+# Build image once
+sg docker -c "docker build -f alphafold/Dockerfile.alphafold -t b300-alphafold2:latest alphafold/"
+
+# Run proxy benchmark (no weights needed)
+CUDA_GPU=4 bash alphafold/run_alphafold_b300.sh
+
+# Run full prediction (with weights)
+AF_WEIGHTS_DIR=/path/to/alphafold_weights \
+CUDA_GPU=4 bash alphafold/run_alphafold_b300.sh
+```
+
+### Expected results (single B300 SXM6, vs H100/B200)
+
+| GPU | T1049 (769 res) | 384 res |
+|---|---|---|
+| H100 SXM5 | ~11.5 min | ~4.5 min |
+| B200 SXM (est.) | ~8.5 min | ~3.3 min |
+| B300 SXM6 | TBD | TBD |
+
+---
+
+## Test 5 — GROMACS 2024 MD Simulation (ApoA1, single GPU)
+
+**Scripts:** `gromacs/` — see [report §14](report/b300_benchmark_report.md#14-gromacs-2024-md-simulation--apoa1)
+
+No dataset download required — ApoA1 benchmark inputs (~5 MB) are downloaded at Docker build time.
+
+```bash
+# Build image once (downloads ApoA1 inputs)
+sg docker -c "docker build -f gromacs/Dockerfile.gromacs -t b300-gromacs:latest gromacs/"
+
+# Run ApoA1 benchmark on GPU 4
+CUDA_GPU=4 bash gromacs/run_gromacs_b300.sh
+```
+
+### Expected results (single B300 SXM6, ApoA1 92K atoms)
+
+| GPU | ns/day | Notes |
+|---|---|---|
+| H100 SXM5 | ~450 ns/day | NVIDIA SC23 benchmark |
+| B200 SXM (est.) | ~585 ns/day | Estimated from TFLOPS ratio |
+| B300 SXM6 | TBD (est. 400–480) | sm_100 fallback; run to measure |
 
 ---
 
