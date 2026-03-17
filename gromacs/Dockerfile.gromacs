@@ -28,8 +28,10 @@ RUN wget -q https://ftp.gromacs.org/gromacs/gromacs-${GMX_VERSION}.tar.gz \
 ENV GMX=/usr/local/gromacs/bin/gmx
 ENV PATH="/usr/local/gromacs/bin:${PATH}"
 
-# Pre-create benchmark working directory
-# (gmx benchmark generates its own water-box input — no external download needed)
+# Generate water-box benchmark TPR at build time (no external downloads needed)
+# 9x9x9 nm SPC water box, ~23,905 molecules (~71k atoms), gromos43a1 FF
 RUN mkdir -p /benchmarks
+COPY gen_waterbox.sh /benchmarks/gen_waterbox.sh
+RUN bash /benchmarks/gen_waterbox.sh
 
 WORKDIR /benchmarks
