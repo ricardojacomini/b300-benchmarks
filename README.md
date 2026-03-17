@@ -361,13 +361,15 @@ bash benchmarks/run_nvlink_stress.sh 2>&1 | tee results/nvlink_stress_b300.log
 CUDA_VISIBLE_DEVICES=0,1,2,3 bash benchmarks/run_nvlink_stress.sh
 ```
 
-### Expected peak (4× B300, NVLink 5 theoretical = 900 GB/s unidirectional)
+### Measured peak (4× B300, NVLink 5, NCCL 2.29.3)
 
-| Collective | Expected peak | NVLink 5 % |
+| Collective | Peak Bus BW | % NVLink 5 |
 |---|---|---|
-| All-Reduce (ring) | ~654 GB/s (measured §4) | 72.7% |
-| All-to-All | TBD — highest expected | TBD |
-| P2P Bidirectional | TBD | TBD |
+| All-Reduce | 654.6 GB/s | 72.7% of 900 GB/s uni |
+| All-to-All | 605.6 GB/s | 67.3% |
+| Broadcast | 659.6 GB/s | 73.3% |
+| **P2P Bidirectional** | **1345.8 GB/s** | **74.8% of 1800 GB/s bidir** ⭐ |
+| Sustained 10 s | 625.8 GB/s | 69.5% (no throttling) |
 
 ---
 

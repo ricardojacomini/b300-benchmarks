@@ -1,0 +1,327 @@
+{
+  "gpu": "NVIDIA B300 SXM6 AC",
+  "world_size": 4,
+  "nccl": "2.29.3",
+  "dtype": "torch.bfloat16",
+  "nvlink5_theoretical_gbs": 900.0,
+  "results": {
+    "All-Reduce": [
+      {
+        "size_mb": 1,
+        "bw_gbs": 45.0,
+        "pct_nvlink5": 5.0
+      },
+      {
+        "size_mb": 4,
+        "bw_gbs": 151.7,
+        "pct_nvlink5": 16.9
+      },
+      {
+        "size_mb": 16,
+        "bw_gbs": 262.1,
+        "pct_nvlink5": 29.1
+      },
+      {
+        "size_mb": 64,
+        "bw_gbs": 530.8,
+        "pct_nvlink5": 59.0
+      },
+      {
+        "size_mb": 128,
+        "bw_gbs": 570.9,
+        "pct_nvlink5": 63.4
+      },
+      {
+        "size_mb": 256,
+        "bw_gbs": 588.9,
+        "pct_nvlink5": 65.4
+      },
+      {
+        "size_mb": 512,
+        "bw_gbs": 608.1,
+        "pct_nvlink5": 67.6
+      },
+      {
+        "size_mb": 1024,
+        "bw_gbs": 617.1,
+        "pct_nvlink5": 68.6
+      },
+      {
+        "size_mb": 2048,
+        "bw_gbs": 631.2,
+        "pct_nvlink5": 70.1
+      },
+      {
+        "size_mb": 4096,
+        "bw_gbs": 654.6,
+        "pct_nvlink5": 72.7
+      }
+    ],
+    "All-to-All": [
+      {
+        "size_mb": 1,
+        "bw_gbs": 3.4,
+        "pct_nvlink5": 0.4
+      },
+      {
+        "size_mb": 4,
+        "bw_gbs": 48.7,
+        "pct_nvlink5": 5.4
+      },
+      {
+        "size_mb": 16,
+        "bw_gbs": 242.3,
+        "pct_nvlink5": 26.9
+      },
+      {
+        "size_mb": 64,
+        "bw_gbs": 388.4,
+        "pct_nvlink5": 43.2
+      },
+      {
+        "size_mb": 128,
+        "bw_gbs": 439.5,
+        "pct_nvlink5": 48.8
+      },
+      {
+        "size_mb": 256,
+        "bw_gbs": 477.3,
+        "pct_nvlink5": 53.0
+      },
+      {
+        "size_mb": 512,
+        "bw_gbs": 493.4,
+        "pct_nvlink5": 54.8
+      },
+      {
+        "size_mb": 1024,
+        "bw_gbs": 532.4,
+        "pct_nvlink5": 59.2
+      },
+      {
+        "size_mb": 2048,
+        "bw_gbs": 593.5,
+        "pct_nvlink5": 65.9
+      },
+      {
+        "size_mb": 4096,
+        "bw_gbs": 605.6,
+        "pct_nvlink5": 67.3
+      }
+    ],
+    "Reduce-Scatter": [
+      {
+        "size_mb": 1,
+        "bw_gbs": 12.3,
+        "pct_nvlink5": 1.4
+      },
+      {
+        "size_mb": 4,
+        "bw_gbs": 49.8,
+        "pct_nvlink5": 5.5
+      },
+      {
+        "size_mb": 16,
+        "bw_gbs": 168.8,
+        "pct_nvlink5": 18.8
+      },
+      {
+        "size_mb": 64,
+        "bw_gbs": 343.6,
+        "pct_nvlink5": 38.2
+      },
+      {
+        "size_mb": 128,
+        "bw_gbs": 364.8,
+        "pct_nvlink5": 40.5
+      },
+      {
+        "size_mb": 256,
+        "bw_gbs": 411.4,
+        "pct_nvlink5": 45.7
+      },
+      {
+        "size_mb": 512,
+        "bw_gbs": 428.0,
+        "pct_nvlink5": 47.6
+      },
+      {
+        "size_mb": 1024,
+        "bw_gbs": 441.0,
+        "pct_nvlink5": 49.0
+      },
+      {
+        "size_mb": 2048,
+        "bw_gbs": 464.1,
+        "pct_nvlink5": 51.6
+      },
+      {
+        "size_mb": 4096,
+        "bw_gbs": 482.3,
+        "pct_nvlink5": 53.6
+      }
+    ],
+    "All-Gather": [
+      {
+        "size_mb": 1,
+        "bw_gbs": 11.7,
+        "pct_nvlink5": 1.3
+      },
+      {
+        "size_mb": 4,
+        "bw_gbs": 49.9,
+        "pct_nvlink5": 5.5
+      },
+      {
+        "size_mb": 16,
+        "bw_gbs": 162.9,
+        "pct_nvlink5": 18.1
+      },
+      {
+        "size_mb": 64,
+        "bw_gbs": 348.6,
+        "pct_nvlink5": 38.7
+      },
+      {
+        "size_mb": 128,
+        "bw_gbs": 389.7,
+        "pct_nvlink5": 43.3
+      },
+      {
+        "size_mb": 256,
+        "bw_gbs": 418.2,
+        "pct_nvlink5": 46.5
+      },
+      {
+        "size_mb": 512,
+        "bw_gbs": 449.1,
+        "pct_nvlink5": 49.9
+      },
+      {
+        "size_mb": 1024,
+        "bw_gbs": 458.4,
+        "pct_nvlink5": 50.9
+      },
+      {
+        "size_mb": 2048,
+        "bw_gbs": 475.6,
+        "pct_nvlink5": 52.8
+      },
+      {
+        "size_mb": 4096,
+        "bw_gbs": 493.6,
+        "pct_nvlink5": 54.8
+      }
+    ],
+    "Broadcast": [
+      {
+        "size_mb": 1,
+        "bw_gbs": 33.0,
+        "pct_nvlink5": 3.7
+      },
+      {
+        "size_mb": 4,
+        "bw_gbs": 131.3,
+        "pct_nvlink5": 14.6
+      },
+      {
+        "size_mb": 16,
+        "bw_gbs": 331.7,
+        "pct_nvlink5": 36.9
+      },
+      {
+        "size_mb": 64,
+        "bw_gbs": 483.4,
+        "pct_nvlink5": 53.7
+      },
+      {
+        "size_mb": 128,
+        "bw_gbs": 555.8,
+        "pct_nvlink5": 61.8
+      },
+      {
+        "size_mb": 256,
+        "bw_gbs": 604.4,
+        "pct_nvlink5": 67.2
+      },
+      {
+        "size_mb": 512,
+        "bw_gbs": 628.4,
+        "pct_nvlink5": 69.8
+      },
+      {
+        "size_mb": 1024,
+        "bw_gbs": 649.0,
+        "pct_nvlink5": 72.1
+      },
+      {
+        "size_mb": 2048,
+        "bw_gbs": 654.2,
+        "pct_nvlink5": 72.7
+      },
+      {
+        "size_mb": 4096,
+        "bw_gbs": 659.6,
+        "pct_nvlink5": 73.3
+      }
+    ],
+    "P2P-BiDir": [
+      {
+        "size_mb": 1,
+        "bw_gbs": 41.2,
+        "pct_nvlink5": 4.6
+      },
+      {
+        "size_mb": 4,
+        "bw_gbs": 180.4,
+        "pct_nvlink5": 20.0
+      },
+      {
+        "size_mb": 16,
+        "bw_gbs": 300.4,
+        "pct_nvlink5": 33.4
+      },
+      {
+        "size_mb": 64,
+        "bw_gbs": 327.3,
+        "pct_nvlink5": 36.4
+      },
+      {
+        "size_mb": 128,
+        "bw_gbs": 345.7,
+        "pct_nvlink5": 38.4
+      },
+      {
+        "size_mb": 256,
+        "bw_gbs": 675.2,
+        "pct_nvlink5": 75.0
+      },
+      {
+        "size_mb": 512,
+        "bw_gbs": 1241.1,
+        "pct_nvlink5": 137.9
+      },
+      {
+        "size_mb": 1024,
+        "bw_gbs": 1305.9,
+        "pct_nvlink5": 145.1
+      },
+      {
+        "size_mb": 2048,
+        "bw_gbs": 1335.6,
+        "pct_nvlink5": 148.4
+      },
+      {
+        "size_mb": 4096,
+        "bw_gbs": 1345.8,
+        "pct_nvlink5": 149.5
+      }
+    ],
+    "Stress-Sustained-2GB": {
+      "bw_gbs": 625.8,
+      "pct_nvlink5": 69.5,
+      "iters": 3614,
+      "elapsed_s": 14.0
+    }
+  }
+}

@@ -42,3 +42,9 @@ build/
 *.conda
 pip-log.txt
 mlperf/logs/
+alphafold/logs/
+gromacs/logs/
+# Keep results JSON/log but ignore large binary outputs
+results/*.xtc
+results/*.trr
+results/*.edr
