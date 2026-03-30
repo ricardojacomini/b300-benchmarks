@@ -4,6 +4,7 @@ Two reproducible benchmarks for the **NVIDIA B300 SXM6 (Blackwell, SM 10.3)**:
 
 1. **GPU Microbenchmarks** — GEMM, Attention, Conv2D, Memory BW, NVLink all-reduce
 2. **Pangu S2S Training** — end-to-end ML training benchmark (conda and NGC container)
+3. **P2P Bandwidth Benchmarks** — three-layer NVLink peer-to-peer validation (hardware link, streamed full-mesh, NCCL-style collective)
 
 Results, findings, and root-cause analysis are in [`report/b300_benchmark_report.md`](report/b300_benchmark_report.md).
 
@@ -14,9 +15,12 @@ Results, findings, and root-cause analysis are in [`report/b300_benchmark_report
 ```
 b300-benchmarks/
 ├── benchmarks/
-│   ├── gpu_benchmark_dsai.py         # GPU microbenchmark (GEMM/Attn/Conv/BW/NCCL)
-│   ├── nvlink_stress_b300.py         # NVLink 5 stress — all collectives (torchrun)
-│   └── run_nvlink_stress.sh          # Runner — auto-selects nightly/conda env
+│   ├── gpu_benchmark_dsai.py              # GPU microbenchmark (GEMM/Attn/Conv/BW/NCCL)
+│   ├── nvlink_stress_b300.py              # NVLink 5 stress — all collectives (torchrun)
+│   ├── run_nvlink_stress.sh               # Runner — auto-selects nightly/conda env
+│   ├── benchmark_peer_to_peer_orig.py     # Raw NVLink link BW (GPU 0 ↔ 1)
+│   ├── benchmark_peer_to_peer_streamed.py # Full-mesh async P2P (4 GPUs)
+│   └── benchmark_peer_to_peer_nccl.py    # NCCL-style collective BW
 ├── training/
 │   ├── Dockerfile.ngc                # NGC 25.03 image with all Pangu deps
 │   ├── faster_train.py               # Pangu S2S trainer (DDP, AMP, compile)
@@ -345,6 +349,87 @@ CUDA_GPU=4 bash gromacs/run_gromacs_b300.sh
 | H100 SXM5 | ~450 ns/day | NVIDIA SC23 benchmark |
 | B200 SXM (est.) | ~585 ns/day | Estimated from TFLOPS ratio |
 | B300 SXM6 | TBD (est. 400–480) | sm_100 fallback; run to measure |
+
+---
+
+## Test 6 — P2P Bandwidth Benchmarks (NVLink 5, B300 SXM6)
+
+Three benchmarks measuring different layers of GPU-to-GPU communication performance.
+See [`B300_P2P_Report.docx`](B300_P2P_Report.docx) for full analysis.
+
+### 6a — Original P2P (Hardware Link, GPU 0 ↔ 1)
+
+**Script:** `benchmarks/benchmark_peer_to_peer_orig.py`
+
+Measures raw NVLink hardware link bandwidth between GPUs 0 and 1. Single-link validation only — not representative of multi-GPU or collective behavior.
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 python benchmarks/benchmark_peer_to_peer_orig.py
+```
+
+#### Expected results (B300 SXM6, GPU 0 ↔ 1)
+
+| Message Size | Bidirectional BW | Notes |
+|---|---|---|
+| 10 MB | ~342 GB/s | Ramp-up phase |
+| 500 MB | ~1265 GB/s | Near-peak |
+| 1024 MB | ~1302 GB/s | Stable peak |
+| 2048 MB | ~1321 GB/s | Maximum observed |
+
+> Hardware link is healthy. Results confirm NVLink 5 hardware is performing correctly.
+
+---
+
+### 6b — Streamed P2P (Full Mesh, 4 GPUs)
+
+**Script:** `benchmarks/benchmark_peer_to_peer_streamed.py`
+
+Python-driven asynchronous full-mesh transfers across all 4 GPUs. Measures application-level overhead, not hardware limits.
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/benchmark_peer_to_peer_streamed.py
+```
+
+#### Expected results (4× B300, full mesh)
+
+| Message Size | Injected BW | Notes |
+|---|---|---|
+| 500 MB | ~28–50 GB/s | Software-limited |
+
+> **Bottlenecks:** Python scheduling overhead, incomplete overlap, kernel launch serialization, software-layer contention.
+> This result reflects software inefficiencies — **not** NVLink hardware limits.
+
+---
+
+### 6c — NCCL-Style Collective (Optimized Multi-GPU)
+
+**Script:** `benchmarks/benchmark_peer_to_peer_nccl.py`
+
+Simulates topology-aware GPU collectives (similar to NCCL). This is the only benchmark directly comparable to vendor-reported NVLink bandwidth figures.
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/benchmark_peer_to_peer_nccl.py
+```
+
+#### Expected results (4× B300, NCCL-style)
+
+| Message Size | Injected BW | Bus BW | Notes |
+|---|---|---|---|
+| 500 MB | ~414 GB/s | ~1241 GB/s | Matches vendor NVLink spec range (1250–1650 GB/s) |
+
+> Use this benchmark when comparing to vendor-reported NVLink numbers.
+
+---
+
+### P2P Benchmark Interpretation Guide
+
+| Benchmark | What it measures | Comparable to |
+|---|---|---|
+| Original P2P (6a) | Raw hardware link BW | NVLink physical link spec |
+| Streamed P2P (6b) | Application-level software overhead | Real Python multi-GPU workloads |
+| NCCL-style (6c) | Optimized collective BW | Vendor NVLink bandwidth claims |
+
+> **Do not compare these three results directly** — they measure different layers of the GPU communication stack.
 
 ---
 
