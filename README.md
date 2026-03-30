@@ -355,6 +355,7 @@ CUDA_GPU=4 bash gromacs/run_gromacs_b300.sh
 ## Test 6 — P2P Bandwidth Benchmarks (NVLink 5, B300 SXM6)
 
 Three benchmarks measuring different layers of GPU-to-GPU communication performance.
+See [`B300_P2P_Report.docx`](B300_P2P_Report.docx) for full analysis.
 
 ### Key Findings Summary
 
