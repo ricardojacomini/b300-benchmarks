@@ -357,55 +357,14 @@ CUDA_GPU=4 bash gromacs/run_gromacs_b300.sh
 Three benchmarks measuring different layers of GPU-to-GPU communication performance.
 See [`B300_P2P_Report.docx`](B300_P2P_Report.docx) for full analysis.
 
-### Key Findings Summary
-
-1. **Original P2P Benchmark (GPU 0 ↔ 1)**
-   - Measures raw NVLink hardware link bandwidth.
-   - Achieves ~1265–1320 GB/s bidirectional at large message sizes (500 MB–2 GB).
-   - Results show stable, near-peak NVLink performance, confirming the hardware interconnect is healthy.
-   - Not representative of multi-GPU or collective behavior — strictly a single-link validation.
-
-2. **Streamed P2P Benchmark (Full Mesh, 4 GPUs)**
-   - Evaluates Python-driven asynchronous full-mesh transfers.
-   - Injected bandwidth is very low: 28–50 GB/s, far below hardware capabilities.
-   - Bottlenecks attributed to:
-     - Python scheduling overhead
-     - Incomplete overlap
-     - Kernel launch serialization
-     - Software-layer contention
-   - Indicates software overhead, not NVLink, is the limiting factor.
-
-3. **NCCL-Style Collective Benchmark**
-   - Simulates optimized, topology-aware GPU collectives (similar to NCCL).
-   - Achieves:
-     - ~414 GB/s injected bandwidth
-     - ~1241 GB/s bus bandwidth at 500 MB
-   - Matches expected NVLink collective performance ranges (1250–1650 GB/s).
-   - This is the only test directly comparable to vendor-reported NVLink bandwidth.
-
-4. **Overall Interpretation**
-   - The three benchmarks measure different layers of the GPU communication stack:
-     - Original P2P: Hardware link bandwidth
-     - Streamed P2P: Application-level overhead effects
-     - NCCL-style: Realistic, optimized multi-GPU communication
-   - Therefore, results should not be directly compared to each other.
-   - For evaluating real-world performance or vendor claims, use the NCCL-style benchmark.
-
-5. **Final Conclusion**
-   - NVLink hardware is performing correctly (validated by Original P2P results).
-   - Streamed P2P reflects software inefficiencies, not hardware limits.
-   - NCCL-style benchmark provides the true representation of optimized bandwidth, aligning with expected NVLink performance.
-
----
-
 ### 6a — Original P2P (Hardware Link, GPU 0 ↔ 1)
 
-**Script:** `benchmarks/benchmark_peer_to_peer_orig.py`
+**Function:** `benchmark_peer_to_peer_orig()`
 
 Measures raw NVLink hardware link bandwidth between GPUs 0 and 1. Single-link validation only — not representative of multi-GPU or collective behavior.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 python benchmarks/benchmark_peer_to_peer_orig.py
+CUDA_VISIBLE_DEVICES=0,1 python benchmarks/gpu_benchmark_dsai.py
 ```
 
 #### Expected results (B300 SXM6, GPU 0 ↔ 1)
@@ -423,12 +382,12 @@ CUDA_VISIBLE_DEVICES=0,1 python benchmarks/benchmark_peer_to_peer_orig.py
 
 ### 6b — Streamed P2P (Full Mesh, 4 GPUs)
 
-**Script:** `benchmarks/benchmark_peer_to_peer_streamed.py`
+**Fuction:** `bbenchmark_peer_to_peer_streamed()`
 
 Python-driven asynchronous full-mesh transfers across all 4 GPUs. Measures application-level overhead, not hardware limits.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/benchmark_peer_to_peer_streamed.py
+CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/gpu_benchmark_dsai.py
 ```
 
 #### Expected results (4× B300, full mesh)
@@ -444,12 +403,12 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/benchmark_peer_to_peer_streamed.p
 
 ### 6c — NCCL-Style Collective (Optimized Multi-GPU)
 
-**Script:** `benchmarks/benchmark_peer_to_peer_nccl.py`
+**Function:** `benchmark_peer_to_peer_nccl()`
 
 Simulates topology-aware GPU collectives (similar to NCCL). This is the only benchmark directly comparable to vendor-reported NVLink bandwidth figures.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/benchmark_peer_to_peer_nccl.py
+CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/gpu_benchmark_dsai.py
 ```
 
 #### Expected results (4× B300, NCCL-style)
