@@ -1,6 +1,6 @@
 # B300 Benchmark Suite — Reproducible Tests
 
-Two reproducible benchmarks for the **NVIDIA B300 SXM6 (Blackwell, SM 10.3)**:
+The reproducible benchmarks for the **NVIDIA B300 SXM6 (Blackwell, SM 10.3)**:
 
 1. **GPU Microbenchmarks** — GEMM, Attention, Conv2D, Memory BW, NVLink all-reduce
 2. **Pangu S2S Training** — end-to-end ML training benchmark (conda and NGC container)
