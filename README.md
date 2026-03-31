@@ -359,12 +359,12 @@ See [`B300_P2P_Report.docx`](B300_P2P_Report.docx) for full analysis.
 
 ### 6a — Original P2P (Hardware Link, GPU 0 ↔ 1)
 
-**Function:** `benchmark_peer_to_peer_orig()`
+**Script:** `benchmark_peer_to_peer_orig.py`
 
 Measures raw NVLink hardware link bandwidth between GPUs 0 and 1. Single-link validation only — not representative of multi-GPU or collective behavior.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 python benchmarks/gpu_benchmark_dsai.py
+CUDA_VISIBLE_DEVICES=0,1 python benchmarks/benchmark_peer_to_peer_orig.py
 ```
 
 #### Expected results (B300 SXM6, GPU 0 ↔ 1)
@@ -382,12 +382,12 @@ CUDA_VISIBLE_DEVICES=0,1 python benchmarks/gpu_benchmark_dsai.py
 
 ### 6b — Streamed P2P (Full Mesh, 4 GPUs)
 
-**Fuction:** `bbenchmark_peer_to_peer_streamed()`
+**Script:** `benchmark_peer_to_peer_streamed.py`
 
 Python-driven asynchronous full-mesh transfers across all 4 GPUs. Measures application-level overhead, not hardware limits.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/gpu_benchmark_dsai.py
+CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/benchmark_peer_to_peer_streamed.py
 ```
 
 #### Expected results (4× B300, full mesh)
@@ -403,12 +403,12 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/gpu_benchmark_dsai.py
 
 ### 6c — NCCL-Style Collective (Optimized Multi-GPU)
 
-**Function:** `benchmark_peer_to_peer_nccl()`
+**Script:** `benchmark_peer_to_peer_nccl.py`
 
 Simulates topology-aware GPU collectives (similar to NCCL). This is the only benchmark directly comparable to vendor-reported NVLink bandwidth figures.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/gpu_benchmark_dsai.py
+CUDA_VISIBLE_DEVICES=0,1,2,3 python benchmarks/benchmark_peer_to_peer_nccl.py
 ```
 
 #### Expected results (4× B300, NCCL-style)

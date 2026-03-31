@@ -525,9 +525,9 @@ class GPUBenchmark:
             
             if self.rank == 0:
                 print("\nPeer-to-Peer Transfer:")
-            self.benchmark_peer_to_peer_orig(10)
-            self.benchmark_peer_to_peer_orig(100)
-            self.benchmark_peer_to_peer_orig(500)
+            self.benchmark_peer_to_peer_streamed(10)
+            self.benchmark_peer_to_peer_streamed(100)
+            self.benchmark_peer_to_peer_streamed(500)
             
             if self.rank == 0:
                 print("\n" + "=" * 70)
